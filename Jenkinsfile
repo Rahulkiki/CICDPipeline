@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven'  // 👈 matches the name in Global Tool Config
+        maven 'Maven'  // Set up in Global Tool Config
     }
 
     environment {
         WAR_PATH = 'target/javaapp.war'
-        TOMCAT_URL = 'http://localhost:8080/manager/text'
+        TOMCAT_URL = 'http://localhost:8080'
         TOMCAT_USER = 'admin'
         TOMCAT_PASS = 'admin'
         CONTEXT_PATH = '/javaapp'
@@ -34,11 +34,17 @@ pipeline {
                         error "❌ WAR file not found at ${WAR_PATH}"
                     }
                 }
-                sh """
-                curl -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
-                     -T "${WAR_PATH}" \
-                     "${TOMCAT_URL}/deploy?path=${CONTEXT_PATH}&update=true"
-                """
+                sh '''
+                    echo "🔐 Fetching Jenkins crumb..."
+                    CRUMB=$(curl -s -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
+                      "${TOMCAT_URL}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)")
+
+                    echo "🚀 Deploying WAR with crumb..."
+                    curl -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
+                         -H "$CRUMB" \
+                         -T "${WAR_PATH}" \
+                         "${TOMCAT_URL}/manager/text/deploy?path=${CONTEXT_PATH}&update=true"
+                '''
             }
         }
     }
@@ -46,6 +52,9 @@ pipeline {
     post {
         success {
             echo "✅ Deployed to http://13.203.104.217:8080${CONTEXT_PATH}/index.jsp"
+        }
+        failure {
+            echo "❌ Deployment failed"
         }
     }
 }
