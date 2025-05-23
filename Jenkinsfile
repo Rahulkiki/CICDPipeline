@@ -1,9 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'  // 👈 matches the name in Global Tool Config
+    }
+
     environment {
-        MAVEN_HOME = '/Applications/apache-maven-3.9.5'
-        PATH = "${MAVEN_HOME}/bin:${env.PATH}"
         WAR_PATH = 'target/javaapp.war'
         TOMCAT_URL = 'http://localhost:8080/manager/text'
         TOMCAT_USER = 'admin'
@@ -12,36 +14,30 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 git url: 'https://github.com/Rahulkiki/CICDPipeline.git', branch: 'main'
             }
         }
 
-        stage('Build with Maven') {
+        stage('Build') {
             steps {
                 echo '📦 Building WAR with Maven...'
                 sh 'mvn clean package'
             }
         }
 
-        stage('Verify WAR Exists') {
+        stage('Deploy') {
             steps {
                 script {
                     if (!fileExists("${WAR_PATH}")) {
                         error "❌ WAR file not found at ${WAR_PATH}"
                     }
                 }
-            }
-        }
-
-        stage('Deploy to Tomcat') {
-            steps {
-                echo "🚀 Deploying WAR to Tomcat at ${CONTEXT_PATH} ..."
                 sh """
-                    curl -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
-                         -T "${WAR_PATH}" \
-                         "${TOMCAT_URL}/deploy?path=${CONTEXT_PATH}&update=true"
+                curl -u "${TOMCAT_USER}:${TOMCAT_PASS}" \
+                     -T "${WAR_PATH}" \
+                     "${TOMCAT_URL}/deploy?path=${CONTEXT_PATH}&update=true"
                 """
             }
         }
@@ -49,10 +45,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment complete: http://localhost:8080${CONTEXT_PATH}/index.jsp"
-        }
-        failure {
-            echo "❌ Build or deploy failed"
+            echo "✅ Deployed to http://13.203.104.217:8080${CONTEXT_PATH}/index.jsp"
         }
     }
 }
