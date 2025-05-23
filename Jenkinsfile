@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        maven 'AutoMaven'  // Assumes you configured Maven in Global Tool Configuration
+        maven 'Maven'
     }
 
     environment {
