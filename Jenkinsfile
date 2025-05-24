@@ -11,6 +11,7 @@ pipeline {
         TOMCAT_USER = 'admin'
         TOMCAT_PASS = 'admin'
         CONTEXT_PATH = '/javaapp'
+        MAVEN_OPTS = "-Xmx512m -Xms256m"
     }
 
     stages {
